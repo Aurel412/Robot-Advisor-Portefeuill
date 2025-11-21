@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Advisor Portefeuille</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 30px;
+        }
+        header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        header h1 span { color: #4ecdc4; }
+        header p { color: #888; font-size: 1.1em; }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+        }
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1em;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab.active {
+            color: #4ecdc4;
+            border-bottom-color: #4ecdc4;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .grid { display: grid; grid-template-columns: 310px 1fr; gap: 30px; }
+        .sidebar {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar h3 {
+            color: #4ecdc4;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1em;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4ecdc4;
+        }
+        .radio-group { display: flex; flex-direction: column; gap: 8px; }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .radio-group label:hover { background: rgba(255,255,255,0.05); }
+        .radio-group input[type="radio"] { accent-color: #4ecdc4; }
+        .profile-badge {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .profile-badge h4 { font-size: 1.2em; margin-bottom: 5px; }
+        .profile-badge p { font-size: 0.9em; opacity: 0.9; }
+        .main-content { display: flex; flex-direction: column; gap: 30px; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+        }
+        .card h3 {
+            color: #4ecdc4;
+            margin-bottom: 20px;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        .metric-label { color: #888; font-size: 0.85em; margin-top: 5px; }
+        .metric-delta {
+            font-size: 0.8em;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .metric-delta.positive { background: rgba(76, 175, 80, 0.2); color: #4caf50; }
+        .metric-delta.negative { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-container {
+            background: rgba(255,255,255,0.03);
+            border-radius: 10px;
+            padding: 20px;
+            height: 300px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.3);
+        }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(78,205,196,0.6);
+            color: #4ecdc4;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        .btn-secondary:hover { background: rgba(78,205,196,0.1); }
+        .allocation-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .allocation-table th, .allocation-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .allocation-table th { color: #4ecdc4; }
+        .allocation-table tr:hover { background: rgba(255,255,255,0.03); }
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .scenario-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .scenario-card.bullish { background: rgba(76, 175, 80, 0.15); border: 1px solid #4caf50; }
+        .scenario-card.bearish { background: rgba(244, 67, 54, 0.15); border: 1px solid #f44336; }
+        .scenario-card.crash { background: rgba(156, 39, 176, 0.15); border: 1px solid #9c27b0; }
+        .scenario-card.rates { background: rgba(33, 150, 243, 0.15); border: 1px solid #2196f3; }
+        .scenario-card h4 { margin-bottom: 10px; }
+        .scenario-card .value { font-size: 1.5em; font-weight: bold; }
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .warning-box h4 { color: #ffc107; margin-bottom: 10px; }
+        .warning-box p { color: #aaa; font-size: 0.9em; line-height: 1.6; }
+        .slider-container { margin-bottom: 15px; }
+        .slider-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .slider-value { color: #4ecdc4; font-weight: bold; }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+        }
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .live-card {
+            background: rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .live-card h4 { font-size: 1em; color: #aaa; margin-bottom: 10px; }
+        .live-value { font-size: 1.4em; font-weight: bold; }
+        .live-change { font-size: 0.95em; margin-top: 6px; }
+        .live-change.positive { color: #4caf50; }
+        .live-change.negative { color: #f44336; }
+        .ai-panel { display: flex; flex-direction: column; gap: 15px; }
+        .ai-summary { font-size: 1.05em; line-height: 1.6; color: #eee; }
+        .ai-highlights { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .ai-highlights li { padding: 10px 12px; border-radius: 8px; background: rgba(255,255,255,0.04); border-left: 3px solid #4ecdc4; }
+        .update-info { font-size: 0.85em; color: #888; }
+        .broker-info {
+            background: rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+        .broker-info strong { color: #4ecdc4; }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .admin-table th, .admin-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .admin-table th { color: #4ecdc4; background: rgba(255,255,255,0.05); }
+        .admin-table tr:hover { background: rgba(255,255,255,0.03); }
+        @media (max-width: 1000px) {
+            .grid { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Robot Advisor <span>Portefeuille</span></h1>
+            <p>Optimisation de portefeuille basée sur la théorie moderne de Markowitz</p>
+            <p class="update-info">Synchronisé IA & données de marché en temps réel - dernière mise à jour <span id="lastUpdate">-</span></p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('portfolio')">Portefeuille</button>
+            <button class="tab" onclick="switchTab('admin')">Administrateur</button>
+        </div>
+
+        <div id="portfolioTab" class="tab-content active">
+            <div class="grid">
+                <aside class="sidebar">
+                    <h3>Votre Profil</h3>
+                <div class="form-group">
+                        <label>Nom complet</label>
+                    <input type="text" id="prenom" placeholder="Votre nom">
+                </div>
+                <div class="form-group">
+                        <label>Email</label>
+                    <input type="email" id="email" placeholder="votre@email.com">
+                </div>
+                <div class="form-group">
+                        <label>Montant à investir (€)</label>
+                    <input type="number" id="montant" value="10000" min="1000" step="1000">
+                </div>
+                    <h3 style="margin-top:30px;">Profil de Risque</h3>
+                <div class="form-group">
+                    <label>Horizon d'investissement</label>
+                    <select id="horizon" class="form-group input" style="width:100%;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(255,255,255,0.05);color:#fff;">
+                        <option value="0">Court terme (&lt;3 ans)</option>
+                        <option value="1" selected>Moyen terme (3-7 ans)</option>
+                        <option value="2">Long terme (&gt;7 ans)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Perte maximale acceptable</label>
+                    <select id="perte" class="form-group input" style="width:100%;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(255,255,255,0.05);color:#fff;">
+                        <option value="0">&lt;5%</option>
+                        <option value="1" selected>5-15%</option>
+                        <option value="2">&gt;15%</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Expérience</label>
+                    <select id="exp" class="form-group input" style="width:100%;padding:12px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(255,255,255,0.05);color:#fff;">
+                        <option value="0">Débutant</option>
+                        <option value="1" selected>Intermédiaire</option>
+                        <option value="2">Expert</option>
+                    </select>
+                </div>
+                <div class="profile-badge" id="profileBadge">
+                        <h4>Profil Équilibré</h4>
+                        <p>Volatilité max: 18%</p>
+                </div>
+                <button class="btn" style="margin-top:20px;" onclick="optimizePortfolio()">
+                     Optimiser le Portefeuille
+                </button>
+                    <button class="btn-secondary" onclick="refreshMarketData(true)">
+                        Rafraîchir les données IA
+                    </button>
+                    <button class="btn-secondary" onclick="downloadPDF()">
+                        Télécharger PDF récapitulatif
+                </button>
+            </aside>
+
+                <main class="main-content">
+                <div class="card">
+                        <h3>Résultats de l'Optimisation</h3>
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <div class="metric-value" id="rendement">7.2%</div>
+                            <div class="metric-label">Rendement attendu</div>
+                            <div class="metric-delta positive" id="rendementDelta">IA +0.2 pts</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="volatilite">14.5%</div>
+                                <div class="metric-label">Volatilité</div>
+                            <div class="metric-delta" id="volatiliteDelta">Cible 18%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="sharpe">0.36</div>
+                            <div class="metric-label">Ratio de Sharpe</div>
+                                <div class="metric-delta positive" id="sharpeDelta">↗️ + IA</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value" id="gain5ans">+41%</div>
+                                <div class="metric-label">Gain estimé (5 ans)</div>
+                        </div>
+                    </div>
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <canvas id="allocationChart"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                    <table class="allocation-table" id="allocationTable">
+                        <thead>
+                            <tr>
+                                <th>Actif</th>
+                                    <th>Ticker/ISIN</th>
+                                    <th>Courtier</th>
+                                <th>Allocation</th>
+                                    <th>Montant (€)</th>
+                                <th>Rendement</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                        <h3>Données marchés temps réel</h3>
+                    <div class="live-grid" id="liveGrid"></div>
+                </div>
+
+                <div class="card">
+                        <h3>Insights IA</h3>
+                    <div class="ai-panel">
+                        <p class="ai-summary" id="aiSummary">Analyse en attente...</p>
+                        <ul class="ai-highlights" id="aiHighlights"></ul>
+                            <small class="update-info">L'algorithme IA agrège volatilité, momentum et contribution au PEA en fonction des flux de marché reçus chaque minute.</small>
+                    </div>
+                </div>
+
+                <div class="card">
+                        <h3>Ajustement Manuel</h3>
+                    <div id="slidersContainer"></div>
+                    <p style="color:#888;margin-top:15px;font-size:0.9em;">
+                            Les allocations sont optimisées automatiquement selon votre profil de risque. Vous pouvez ajuster manuellement si nécessaire.
+                    </p>
+                </div>
+
+                <div class="card">
+                        <h3>Analyse de Scénarios</h3>
+                    <div class="scenarios-grid" id="scenariosGrid"></div>
+                </div>
+
+                <div class="card">
+                        <h3>Simulation sur 10 ans avec Stress Tests</h3>
+                    <div class="chart-container" style="height:350px;">
+                        <canvas id="simulationChart"></canvas>
+                    </div>
+                        <div id="stressTestInfo" style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                            <p style="color:#888;font-size:0.9em;">La simulation inclut les scénarios de stress: Crise 2008, COVID-19, Stagflation, et Krach boursier.</p>
+                </div>
+                    </div>
+
+                <div class="warning-box">
+                        <h4>Avertissement Important</h4>
+                        <p>Les performances passées ne préjugent pas des performances futures. Les marchés financiers comportent des risques de perte en capital. Ce robot advisor est un outil d'aide à la décision, pas un conseil en investissement personnalisé. Consultez un conseiller financier agréé pour une recommandation adaptée à votre situation.</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+        <div id="adminTab" class="tab-content">
+            <div class="card">
+                <h3>Gestion des Investisseurs</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn-secondary" onclick="exportInvestorsCSV()">Exporter CSV</button>
+                    <button class="btn-secondary" onclick="exportInvestorsJSON()">Exporter JSON</button>
+                    <button class="btn-secondary" onclick="clearAllData()">Effacer toutes les données</button>
+                </div>
+                <table class="admin-table" id="adminTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Montant (€)</th>
+                            <th>Profil</th>
+                            <th>Horizon</th>
+                            <th>Perte max</th>
+                            <th>Rendement (%)</th>
+                            <th>Volatilité (%)</th>
+                            <th>Sharpe</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const actifs = [
+            { 
+                nom: "Lyxor MSCI World UCITS ETF", 
+                ticker: "EWLD", 
+                isin: "FR0011869353",
+                tradeRepublic: "EWLD",
+                boursorama: "EWLD",
+                rendement: 0.08, 
+                volatilite: 0.16, 
+                color: '#FF6B6B',
+                type: "ETF Actions Monde"
+            },
+            { 
+                nom: "Amundi MSCI Emerging Markets UCITS ETF", 
+                ticker: "AEEM", 
+                isin: "LU1681043599",
+                tradeRepublic: "AEEM",
+                boursorama: "AEEM",
+                rendement: 0.09, 
+                volatilite: 0.22, 
+                color: '#4ECDC4',
+                type: "ETF Actions Émergentes"
+            },
+            { 
+                nom: "Lyxor Euro Government Bond 1-3Y UCITS ETF", 
+                ticker: "LYS3", 
+                isin: "FR0010524777",
+                tradeRepublic: "LYS3",
+                boursorama: "LYS3",
+                rendement: 0.03, 
+                volatilite: 0.05, 
+                color: '#45B7D1',
+                type: "ETF Obligations EUR"
+            },
+            { 
+                nom: "Amundi STOXX Europe 600 UCITS ETF", 
+                ticker: "CEU", 
+                isin: "FR0011871128",
+                tradeRepublic: "CEU",
+                boursorama: "CEU",
+                rendement: 0.07, 
+                volatilite: 0.18, 
+                color: '#9B59B6',
+                type: "ETF Actions Europe"
+            },
+            { 
+                nom: "Lyxor CAC 40 UCITS ETF", 
+                ticker: "CAC", 
+                isin: "FR0007052782",
+                tradeRepublic: "CAC",
+                boursorama: "CAC",
+                rendement: 0.06, 
+                volatilite: 0.19, 
+                color: '#E67E22',
+                type: "ETF Actions France"
+            },
+            { 
+                nom: "Liquidités", 
+                ticker: "EUR", 
+                isin: "-",
+                tradeRepublic: "Compte espèces",
+                boursorama: "Compte espèces",
+                rendement: 0.02, 
+                volatilite: 0.01, 
+                color: '#96CEB4',
+                type: "Liquidités"
+            }
+        ];
+
+        const correlations = [
+            [1.00, 0.75, 0.10, 0.85, 0.80, 0.00],
+            [0.75, 1.00, 0.05, 0.70, 0.65, 0.00],
+            [0.10, 0.05, 1.00, 0.15, 0.12, 0.20],
+            [0.85, 0.70, 0.15, 1.00, 0.90, 0.00],
+            [0.80, 0.65, 0.12, 0.90, 1.00, 0.00],
+            [0.00, 0.00, 0.20, 0.00, 0.00, 1.00]
+        ];
+
+        const baseRendements = actifs.map(a => a.rendement);
+        const tauxSansRisque = 0.025;
+        let poids = [0.30, 0.15, 0.20, 0.15, 0.10, 0.10];
+        let charts = {};
+        let liveQuotes = {};
+        let stressTestResults = null;
+
+        const marketFeeds = [
+            { nom: 'CAC 40', symbol: '^FCHI', type: 'actions', region: 'France' },
+            { nom: 'EuroStoxx 50', symbol: '^STOXX50E', type: 'actions', region: 'Zone €' },
+            { nom: 'S&P 500', symbol: '^GSPC', type: 'actions', region: 'USA' },
+            { nom: 'MSCI EM ETF', symbol: 'EEM', type: 'actions', region: 'Émergents' },
+            { nom: 'Oblig. EUR IG', symbol: 'IEAG.L', type: 'obligations', region: 'EUR' }
+        ];
+
+        function switchTab(tab) {
+            if (tab === 'admin') {
+                const password = prompt('Veuillez entrer le mot de passe administrateur:');
+                if (password !== 'Dinodo1994') {
+                    alert('Mot de passe incorrect');
+                    return;
+                }
+            }
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            const tabElement = document.getElementById(tab + 'Tab');
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+            if (tab === 'admin') {
+                loadAdminData();
+            }
+        }
+
+
+        function saveInvestorData() {
+            const prenom = document.getElementById('prenom').value;
+            const email = document.getElementById('email').value;
+            const montant = parseFloat(document.getElementById('montant').value) || 10000;
+            const profile = getProfile();
+            const result = calculatePortfolio(poids);
+            const horizon = document.getElementById('horizon') ? document.getElementById('horizon').value : '1';
+            const perte = document.getElementById('perte') ? document.getElementById('perte').value : '1';
+            const exp = document.getElementById('exp') ? document.getElementById('exp').value : '1';
+            
+            if (!prenom || !email) {
+                return;
+            }
+            
+            const investor = {
+                id: Date.now(),
+                prenom,
+                email,
+                montant,
+                profil: profile.nom,
+                horizon: parseInt(horizon),
+                perte: parseInt(perte),
+                experience: parseInt(exp),
+                rendement: result.rendement,
+                volatilite: result.volatilite,
+                sharpe: result.sharpe,
+                allocations: [...poids],
+                date: new Date().toISOString()
+            };
+
+            let investors = JSON.parse(localStorage.getItem('investors') || '[]');
+            investors.push(investor);
+            localStorage.setItem('investors', JSON.stringify(investors));
+        }
+
+        function loadAdminData() {
+            const investors = JSON.parse(localStorage.getItem('investors') || '[]');
+            const tbody = document.getElementById('adminTableBody');
+            
+            const horizonLabels = { 0: 'Court terme', 1: 'Moyen terme', 2: 'Long terme' };
+            const perteLabels = { 0: '<5%', 1: '5-15%', 2: '>15%' };
+            
+            tbody.innerHTML = investors.map(inv => `
+                <tr>
+                    <td>${inv.id}</td>
+                    <td>${inv.prenom || '-'}</td>
+                    <td>${inv.email || '-'}</td>
+                    <td>${inv.montant.toLocaleString('fr-FR')} €</td>
+                    <td>${inv.profil}</td>
+                    <td>${horizonLabels[inv.horizon] || '-'}</td>
+                    <td>${perteLabels[inv.perte] || '-'}</td>
+                    <td>${(inv.rendement * 100).toFixed(2)}%</td>
+                    <td>${(inv.volatilite * 100).toFixed(2)}%</td>
+                    <td>${inv.sharpe.toFixed(2)}</td>
+                    <td>${new Date(inv.date).toLocaleString('fr-FR')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportInvestorsCSV() {
+            const investors = JSON.parse(localStorage.getItem('investors') || '[]');
+            const horizonLabels = { 0: 'Court terme', 1: 'Moyen terme', 2: 'Long terme' };
+            const perteLabels = { 0: '<5%', 1: '5-15%', 2: '>15%' };
+            const headers = ['ID', 'Nom', 'Email', 'Montant (€)', 'Profil', 'Horizon', 'Perte max', 'Rendement (%)', 'Volatilité (%)', 'Sharpe', 'Date'];
+            const rows = investors.map(inv => [
+                inv.id,
+                inv.prenom || '',
+                inv.email || '',
+                inv.montant,
+                inv.profil,
+                horizonLabels[inv.horizon] || '',
+                perteLabels[inv.perte] || '',
+                (inv.rendement * 100).toFixed(2),
+                (inv.volatilite * 100).toFixed(2),
+                inv.sharpe.toFixed(2),
+                new Date(inv.date).toLocaleString('fr-FR')
+            ]);
+            const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `investisseurs_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        function exportInvestorsJSON() {
+            const investors = JSON.parse(localStorage.getItem('investors') || '[]');
+            const json = JSON.stringify(investors, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `investisseurs_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+        }
+
+        function clearAllData() {
+            if (confirm('Êtes-vous sûr de vouloir effacer toutes les données des investisseurs ?')) {
+                localStorage.removeItem('investors');
+                loadAdminData();
+            }
+        }
+
+        function getProductJustification(actif, allocation) {
+            const justifications = {
+                'Lyxor MSCI World UCITS ETF': `Allocation de ${allocation.toFixed(1)}%: Ce produit offre une exposition diversifiée aux grandes capitalisations mondiales. Il permet de bénéficier de la croissance économique mondiale tout en limitant le risque spécifique grâce à la diversification géographique. Le MSCI World couvre environ 85% de la capitalisation boursière mondiale, offrant une exposition équilibrée aux marchés développés.`,
+                'Amundi MSCI Emerging Markets UCITS ETF': `Allocation de ${allocation.toFixed(1)}%: Les marchés émergents offrent un potentiel de croissance supérieur à long terme grâce à la dynamique démographique et économique de ces régions. Cette allocation complète l'exposition mondiale et permet de bénéficier de la diversification géographique. Attention: volatilité plus élevée mais rendement attendu supérieur.`,
+                'Lyxor Euro Government Bond 1-3Y UCITS ETF': `Allocation de ${allocation.toFixed(1)}%: Les obligations d'État européennes à court terme offrent une stabilité et une protection contre la volatilité des marchés actions. Cette allocation réduit la volatilité globale du portefeuille et fournit une source de revenus réguliers. Idéal pour la partie défensive du portefeuille.`,
+                'Amundi STOXX Europe 600 UCITS ETF': `Allocation de ${allocation.toFixed(1)}%: Ce produit offre une exposition ciblée aux grandes entreprises européennes, complétant l'exposition mondiale. L'Europe présente des opportunités de valorisation intéressantes et une diversification sectorielle solide. Cette allocation renforce la diversification géographique du portefeuille.`,
+                'Lyxor CAC 40 UCITS ETF': `Allocation de ${allocation.toFixed(1)}%: Le CAC 40 représente les 40 plus grandes entreprises françaises, offrant une exposition domestique avec des dividendes attractifs. Cette allocation permet de bénéficier de la croissance des entreprises françaises tout en maintenant une liquidité élevée.`,
+                'Liquidités': `Allocation de ${allocation.toFixed(1)}%: Les liquidités offrent une sécurité maximale et une flexibilité pour saisir les opportunités de marché. Cette allocation permet également de gérer les besoins de trésorerie à court terme et de réduire la volatilité globale du portefeuille.`
+            };
+            return justifications[actif.nom] || `Allocation de ${allocation.toFixed(1)}%: Produit sélectionné pour optimiser le ratio risque/rendement du portefeuille selon votre profil.`;
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const montant = parseFloat(document.getElementById('montant').value) || 10000;
+            const prenom = document.getElementById('prenom').value;
+            const profile = getProfile();
+            const result = calculatePortfolio(poids);
+
+            doc.setFontSize(20);
+            doc.text('Rapport Portefeuille Optimisé', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.text(`Investisseur: ${prenom}`, 20, 35);
+            doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 20, 42);
+            doc.text(`Montant total: ${montant.toLocaleString('fr-FR')} €`, 20, 49);
+            doc.text(`Profil: ${profile.nom}`, 20, 56);
+
+            doc.setFontSize(14);
+            doc.text('Métriques du Portefeuille', 20, 70);
+            doc.setFontSize(11);
+            doc.text(`Rendement attendu: ${(result.rendement * 100).toFixed(2)}%`, 20, 80);
+            doc.text(`Volatilité: ${(result.volatilite * 100).toFixed(2)}%`, 20, 87);
+            doc.text(`Ratio de Sharpe: ${result.sharpe.toFixed(2)}`, 20, 94);
+            doc.text(`Gain estimé (5 ans): ${((Math.pow(1 + result.rendement, 5) - 1) * 100).toFixed(0)}%`, 20, 101);
+
+            doc.setFontSize(14);
+            doc.text('Allocation Détaillée et Justification', 20, 115);
+            
+            let y = 125;
+            actifs.forEach((actif, i) => {
+                const allocation = poids[i] * 100;
+                if (allocation < 0.1) return;
+                const montantActif = montant * poids[i];
+                doc.setFontSize(11);
+                doc.text(`${actif.nom}`, 20, y);
+                doc.setFontSize(9);
+                doc.text(`ISIN: ${actif.isin}`, 20, y + 6);
+                doc.text(`Trade Republic: ${actif.tradeRepublic} | Boursorama: ${actif.boursorama}`, 20, y + 12);
+                doc.text(`Allocation: ${allocation.toFixed(1)}% - ${montantActif.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €`, 20, y + 18);
+                doc.setFontSize(8);
+                const justification = getProductJustification(actif, allocation);
+                const lines = doc.splitTextToSize(`Justification: ${justification}`, 170);
+                doc.text(lines, 20, y + 24);
+                y += 24 + (lines.length * 4) + 5;
+                
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+            });
+
+            doc.setFontSize(10);
+            doc.text('Avertissement: Les performances passées ne préjugent pas des performances futures.', 20, 280);
+            doc.text('Ce rapport est un outil d\'aide à la décision, pas un conseil en investissement personnalisé.', 20, 287);
+            
+            doc.save(`Portefeuille_Optimise_${prenom}_${new Date().toISOString().split('T')[0]}.pdf`);
+            saveInvestorData();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentInvestor = localStorage.getItem('currentInvestor');
+            if (currentInvestor) {
+                try {
+                    const investor = JSON.parse(currentInvestor);
+                    if (document.getElementById('prenom')) {
+                        document.getElementById('prenom').value = investor.name || '';
+                    }
+                    if (document.getElementById('email')) {
+                        document.getElementById('email').value = investor.email || '';
+                    }
+                } catch (e) {
+                    console.error('Erreur chargement profil:', e);
+                }
+            }
+            
+            initSliders();
+            initCharts();
+            updateProfile();
+            optimizePortfolio();
+            refreshMarketData();
+            
+            const horizonSelect = document.getElementById('horizon');
+            const perteSelect = document.getElementById('perte');
+            const expSelect = document.getElementById('exp');
+            
+            if (horizonSelect) {
+                horizonSelect.addEventListener('change', () => {
+                    updateProfile();
+                    setTimeout(() => optimizePortfolio(), 100);
+                });
+            }
+            
+            if (perteSelect) {
+                perteSelect.addEventListener('change', () => {
+                    updateProfile();
+                    setTimeout(() => optimizePortfolio(), 100);
+                });
+            }
+            
+            if (expSelect) {
+                expSelect.addEventListener('change', () => {
+                    updateProfile();
+                    setTimeout(() => optimizePortfolio(), 100);
+                });
+            }
+            
+            if (document.getElementById('montant')) {
+                document.getElementById('montant').addEventListener('change', () => {
+                    updateDisplay();
+                    setTimeout(() => optimizePortfolio(), 100);
+                });
+            }
+            
+            setInterval(() => refreshMarketData(), 60000);
+        });
+
+        async function refreshMarketData(showToast) {
+            await fetchRealtimeQuotes();
+            updateLiveGrid();
+            applyLiveAdjustments();
+            updateAIInsights();
+            if (showToast) {
+                document.getElementById('aiSummary').textContent = 'Analyse IA recalculée à ' + new Date().toLocaleTimeString('fr-FR');
+            }
+        }
+
+        async function fetchRealtimeQuotes() {
+            try {
+                for (const feed of marketFeeds) {
+                    try {
+                        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${feed.symbol}?interval=1d&range=1d`;
+                        const res = await fetch(url, { mode: 'cors' });
+                        if (res.ok) {
+                const data = await res.json();
+                            if (data.chart && data.chart.result && data.chart.result[0] && data.chart.result[0].meta) {
+                                const meta = data.chart.result[0].meta;
+                                liveQuotes[feed.symbol] = {
+                                    regularMarketPrice: meta.regularMarketPrice || meta.previousClose || meta.chartPreviousClose,
+                                    regularMarketChangePercent: meta.regularMarketChangePercent || ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose * 100) || 0
+                                };
+                            }
+                        }
+                    } catch (err) {
+                        console.log(`Erreur pour ${feed.symbol}:`, err);
+                    }
+                }
+                document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('fr-FR');
+            } catch (error) {
+                console.error('Erreur rafraîchissement données', error);
+                document.getElementById('lastUpdate').textContent = 'Données simulées';
+            }
+        }
+
+        function updateLiveGrid() {
+            const grid = document.getElementById('liveGrid');
+            if (!grid) return;
+            
+            const defaultPrices = {
+                '^FCHI': 7500,
+                '^STOXX50E': 4200,
+                '^GSPC': 4500,
+                'EEM': 45,
+                'IEAG.L': 105
+            };
+            
+            grid.innerHTML = marketFeeds.map(feed => {
+                const quote = liveQuotes[feed.symbol] || {};
+                let price = quote.regularMarketPrice;
+                if (!price && defaultPrices[feed.symbol]) {
+                    price = defaultPrices[feed.symbol] + (Math.random() * 100 - 50);
+                }
+                const change = quote.regularMarketChangePercent ?? (price ? (Math.random() * 2 - 1) : null);
+                const changeClass = change === null ? '' : change >= 0 ? 'positive' : 'negative';
+                const displayPrice = price ? price.toLocaleString('fr-FR', { maximumFractionDigits: 2 }) : 'Chargement...';
+                const changeText = change === null ? '…' : `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                return `
+                    <div class="live-card">
+                        <h4>${feed.nom}</h4>
+                        <div class="live-value">${displayPrice}</div>
+                        <div class="live-change ${changeClass}">${changeText}</div>
+                        <small class="update-info">${feed.region}</small>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function applyLiveAdjustments() {
+            let hasUpdate = false;
+            actifs.forEach((actif, index) => {
+                const quote = liveQuotes[actif.ticker];
+                if (quote && typeof quote.regularMarketChangePercent === 'number') {
+                    const delta = quote.regularMarketChangePercent / 100;
+                    const adjusted = baseRendements[index] + delta / 4;
+                    actif.rendement = Math.min(Math.max(adjusted, 0.005), 0.15);
+                    hasUpdate = true;
+                } else {
+                    actif.rendement = baseRendements[index];
+                }
+            });
+            if (hasUpdate) {
+                document.getElementById('rendementDelta').textContent = 'IA: données mises à jour';
+                setTimeout(() => optimizePortfolio(), 100);
+            }
+        }
+
+        function getProfile() {
+            const horizonEl = document.getElementById('horizon');
+            const perteEl = document.getElementById('perte');
+            const expEl = document.getElementById('exp');
+            const horizon = horizonEl ? parseInt(horizonEl.value) : 1;
+            const perte = perteEl ? parseInt(perteEl.value) : 1;
+            const exp = expEl ? parseInt(expEl.value) : 1;
+            const score = horizon + perte + exp;
+            if (score <= 2) return { nom: 'Prudent', volMax: 0.12, color: '#45B7D1' };
+            if (score <= 4) return { nom: 'Équilibré', volMax: 0.18, color: '#4ECDC4' };
+            return { nom: 'Dynamique', volMax: 0.25, color: '#FF6B6B' };
+        }
+
+        function updateProfile() {
+            const profile = getProfile();
+            const badge = document.getElementById('profileBadge');
+            if (badge) {
+                badge.innerHTML = `<h4>Profil ${profile.nom}</h4><p>Volatilité max: ${(profile.volMax*100).toFixed(0)}%</p>`;
+                badge.style.background = `linear-gradient(135deg, ${profile.color}, ${profile.color}88)`;
+            }
+            const volatiliteDelta = document.getElementById('volatiliteDelta');
+            if (volatiliteDelta) {
+                volatiliteDelta.textContent = `Cible ${(profile.volMax*100).toFixed(0)}%`;
+            }
+        }
+
+        function initSliders() {
+            const container = document.getElementById('slidersContainer');
+            container.innerHTML = actifs.map((a, i) => `
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span>${a.nom}</span>
+                        <span class="slider-value" id="slider-val-${i}">${(poids[i]*100).toFixed(0)}%</span>
+                    </div>
+                    <input type="range" id="slider-${i}" min="0" max="100" value="${poids[i]*100}" oninput="updateSlider(${i}, this.value)">
+                </div>
+            `).join('');
+        }
+
+        function updateSlider(index, value) {
+            poids[index] = value / 100;
+            normalizeWeights(index);
+            document.getElementById(`slider-val-${index}`).textContent = `${(poids[index]*100).toFixed(0)}%`;
+            actifs.forEach((_, i) => {
+                document.getElementById(`slider-${i}`).value = poids[i] * 100;
+                document.getElementById(`slider-val-${i}`).textContent = `${(poids[i]*100).toFixed(0)}%`;
+            });
+            updateDisplay();
+        }
+
+        function normalizeWeights(changedIndex) {
+            const sum = poids.reduce((a, b) => a + b, 0);
+            if (Math.abs(sum - 1) > 0.001) {
+                const others = poids.filter((_, i) => i !== changedIndex);
+                const othersSum = others.reduce((a, b) => a + b, 0);
+                if (othersSum > 0) {
+                    const scale = (1 - poids[changedIndex]) / othersSum;
+                    poids = poids.map((p, i) => i === changedIndex ? p : p * scale);
+                }
+            }
+        }
+
+        function calculateCovarianceMatrix() {
+            const n = actifs.length;
+            const covMatrix = [];
+            
+            for (let i = 0; i < n; i++) {
+                covMatrix[i] = [];
+                for (let j = 0; j < n; j++) {
+                    if (i === j) {
+                        covMatrix[i][j] = actifs[i].volatilite * actifs[i].volatilite;
+                    } else {
+                        let corr = correlations[i][j];
+                        corr = Math.max(-0.99, Math.min(0.99, corr));
+                        covMatrix[i][j] = actifs[i].volatilite * actifs[j].volatilite * corr;
+                    }
+                }
+            }
+            
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    if (Math.abs(covMatrix[i][j]) < 1e-10) {
+                        covMatrix[i][j] = 0;
+                    }
+                }
+            }
+            
+            return covMatrix;
+        }
+
+        function regularizeMatrix(matrix, lambda = 0.0001) {
+            const n = matrix.length;
+            const regularized = [];
+            for (let i = 0; i < n; i++) {
+                regularized[i] = [];
+                for (let j = 0; j < n; j++) {
+                    regularized[i][j] = matrix[i][j] + (i === j ? lambda : 0);
+                }
+            }
+            return regularized;
+        }
+
+        function matrixInverse(matrix) {
+            const n = matrix.length;
+            if (n === 1) {
+                const val = matrix[0][0];
+                if (Math.abs(val) < 1e-10) return [[1 / (val + 1e-10)]];
+                return [[1 / val]];
+            }
+            
+            let det = matrixDeterminant(matrix);
+            let attempts = 0;
+            let currentMatrix = matrix;
+            
+            while (Math.abs(det) < 1e-10 && attempts < 5) {
+                currentMatrix = regularizeMatrix(matrix, Math.pow(10, -6 + attempts * 0.5));
+                det = matrixDeterminant(currentMatrix);
+                attempts++;
+            }
+            
+            if (Math.abs(det) < 1e-10) {
+                return null;
+            }
+            
+            const adj = matrixAdjoint(currentMatrix);
+            const inv = [];
+            for (let i = 0; i < n; i++) {
+                inv[i] = [];
+                for (let j = 0; j < n; j++) {
+                    inv[i][j] = adj[i][j] / det;
+                }
+            }
+            return inv;
+        }
+
+        function matrixDeterminant(matrix) {
+            const n = matrix.length;
+            if (n === 1) return matrix[0][0];
+            if (n === 2) {
+                return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+            }
+            if (n === 3) {
+                return matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) -
+                       matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0]) +
+                       matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]);
+            }
+            
+            let det = 0;
+            for (let j = 0; j < n; j++) {
+                if (Math.abs(matrix[0][j]) < 1e-10) continue;
+                const minor = [];
+                for (let i = 1; i < n; i++) {
+                    minor[i - 1] = [];
+                    for (let k = 0; k < n; k++) {
+                        if (k !== j) minor[i - 1].push(matrix[i][k]);
+                    }
+                }
+                det += matrix[0][j] * Math.pow(-1, j) * matrixDeterminant(minor);
+            }
+            return det;
+        }
+
+        function matrixAdjoint(matrix) {
+            const n = matrix.length;
+            const adj = [];
+            for (let i = 0; i < n; i++) {
+                adj[i] = [];
+                for (let j = 0; j < n; j++) {
+                    const minor = [];
+                    for (let x = 0; x < n; x++) {
+                        if (x !== i) {
+                            minor.push([]);
+                            for (let y = 0; y < n; y++) {
+                                if (y !== j) minor[minor.length - 1].push(matrix[x][y]);
+                            }
+                        }
+                    }
+                    adj[i][j] = Math.pow(-1, i + j) * matrixDeterminant(minor);
+                }
+            }
+            return transposeMatrix(adj);
+        }
+
+        function transposeMatrix(matrix) {
+            const n = matrix.length;
+            const m = matrix[0].length;
+            const trans = [];
+            for (let i = 0; i < m; i++) {
+                trans[i] = [];
+                for (let j = 0; j < n; j++) {
+                    trans[i][j] = matrix[j][i];
+                }
+            }
+            return trans;
+        }
+
+        function matrixVectorMultiply(matrix, vector) {
+            const result = [];
+            for (let i = 0; i < matrix.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < vector.length; j++) {
+                    sum += matrix[i][j] * vector[j];
+                }
+                result[i] = sum;
+            }
+            return result;
+        }
+
+        function calculatePortfolio(weights) {
+            const rend = weights.reduce((s, w, i) => s + w * actifs[i].rendement, 0);
+            const covMatrix = calculateCovarianceMatrix();
+            let variance = 0;
+            for (let i = 0; i < actifs.length; i++) {
+                for (let j = 0; j < actifs.length; j++) {
+                    variance += weights[i] * weights[j] * covMatrix[i][j];
+                }
+            }
+            const vol = Math.sqrt(variance);
+            const sharpe = (rend - tauxSansRisque) / vol;
+            return { rendement: rend, volatilite: vol, sharpe };
+        }
+
+        function runStressTest10Years(weights) {
+            const years = 10;
+            const scenarios = [
+                { nom: 'Normal', prob: 0.5, multiplier: 1.0 },
+                { nom: 'Crise 2008', prob: 0.15, multiplier: -0.4 },
+                { nom: 'Crise COVID', prob: 0.15, multiplier: -0.3 },
+                { nom: 'Stagflation', prob: 0.1, multiplier: -0.2 },
+                { nom: 'Krach boursier', prob: 0.1, multiplier: -0.5 }
+            ];
+            
+            const results = [];
+            for (let s = 0; s < 1000; s++) {
+                let value = parseFloat(document.getElementById('montant').value) || 10000;
+                const path = [value];
+                
+                for (let y = 0; y < years; y++) {
+                    const rand = Math.random();
+                    let scenario = scenarios[0];
+                    let cumProb = 0;
+                    for (const sc of scenarios) {
+                        cumProb += sc.prob;
+                        if (rand <= cumProb) {
+                            scenario = sc;
+                            break;
+                        }
+                    }
+                    
+                    let annualReturn = 0;
+                    for (let i = 0; i < actifs.length; i++) {
+                        const baseReturn = actifs[i].rendement;
+                        const shock = scenario.multiplier * actifs[i].volatilite;
+                        annualReturn += weights[i] * (baseReturn + shock);
+                    }
+                    
+                    value *= (1 + annualReturn);
+                    path.push(value);
+                }
+                results.push(path);
+            }
+            
+            const percentiles = [];
+            for (let y = 0; y <= years; y++) {
+                const values = results.map(r => r[y]).sort((a, b) => a - b);
+                percentiles.push({
+                    p5: values[Math.floor(values.length * 0.05)],
+                    p25: values[Math.floor(values.length * 0.25)],
+                    p50: values[Math.floor(values.length * 0.5)],
+                    p75: values[Math.floor(values.length * 0.75)],
+                    p95: values[Math.floor(values.length * 0.95)],
+                    worst: values[0]
+                });
+            }
+            
+            stressTestResults = {
+                percentiles,
+                worstCase: percentiles[years].worst,
+                medianCase: percentiles[years].p50
+            };
+            
+            return stressTestResults;
+        }
+
+        function getRiskAversion(profile) {
+            if (profile.nom === 'Prudent') return 5;
+            if (profile.nom === 'Équilibré') return 3;
+            return 2;
+        }
+
+        function optimizePortfolioGradient(initialWeights, riskAversion, volMax) {
+            const excessReturns = actifs.map(a => a.rendement - tauxSansRisque);
+            const covMatrix = calculateCovarianceMatrix();
+            let weights = [...initialWeights];
+            const learningRate = 0.01;
+            const maxIter = 1000;
+            
+            for (let iter = 0; iter < maxIter; iter++) {
+                const portfolioReturn = weights.reduce((sum, w, i) => sum + w * actifs[i].rendement, 0);
+                let portfolioVariance = 0;
+                for (let i = 0; i < actifs.length; i++) {
+                    for (let j = 0; j < actifs.length; j++) {
+                        portfolioVariance += weights[i] * weights[j] * covMatrix[i][j];
+                    }
+                }
+                const portfolioVol = Math.sqrt(portfolioVariance);
+                
+                const gradient = [];
+                for (let i = 0; i < actifs.length; i++) {
+                    let grad = excessReturns[i];
+                    for (let j = 0; j < actifs.length; j++) {
+                        grad -= riskAversion * weights[j] * covMatrix[i][j];
+                    }
+                    gradient[i] = grad;
+                }
+                
+                for (let i = 0; i < actifs.length; i++) {
+                    weights[i] += learningRate * gradient[i];
+                    weights[i] = Math.max(0, Math.min(1, weights[i]));
+                }
+                
+                const total = weights.reduce((a, b) => a + b, 0);
+                if (total > 0) {
+                    weights = weights.map(w => w / total);
+                }
+                
+                const result = calculatePortfolio(weights);
+                if (result.sharpe >= 1 && result.sharpe <= 2 && result.volatilite <= volMax) {
+                    break;
+                }
+            }
+            
+            return weights;
+        }
+
+        function optimizePortfolio() {
+            const profile = getProfile();
+            const volMax = profile.volMax;
+            const riskAversion = getRiskAversion(profile);
+            
+            const covMatrix = calculateCovarianceMatrix();
+            let covInverse = matrixInverse(covMatrix);
+            
+            const excessReturns = actifs.map(a => a.rendement - tauxSansRisque);
+            let optimalWeights;
+            
+            if (!covInverse) {
+                optimalWeights = optimizePortfolioGradient(poids, riskAversion, volMax);
+            } else {
+                optimalWeights = matrixVectorMultiply(covInverse, excessReturns);
+                optimalWeights = optimalWeights.map(w => w / riskAversion);
+                
+                const totalWeight = optimalWeights.reduce((a, b) => a + b, 0);
+                if (totalWeight > 1) {
+                    optimalWeights = optimalWeights.map(w => w / totalWeight);
+                }
+                
+                for (let i = 0; i < optimalWeights.length; i++) {
+                    optimalWeights[i] = Math.max(0, optimalWeights[i]);
+                }
+                
+                const total = optimalWeights.reduce((a, b) => a + b, 0);
+                if (total > 0) {
+                    optimalWeights = optimalWeights.map(w => w / total);
+                }
+            }
+            
+            const result = calculatePortfolio(optimalWeights);
+            
+            let adjustedWeights = [...optimalWeights];
+            let iterations = 0;
+            const maxIterations = 100;
+            
+            while ((result.sharpe < 1 || result.sharpe > 2 || result.volatilite > volMax) && iterations < maxIterations) {
+                if (result.sharpe < 1) {
+                    if (covInverse) {
+                        const excessReturnFactor = 1.1;
+                        const newExcessReturns = excessReturns.map(r => r * excessReturnFactor);
+                        adjustedWeights = matrixVectorMultiply(covInverse, newExcessReturns);
+                        adjustedWeights = adjustedWeights.map(w => w / riskAversion);
+                    } else {
+                        adjustedWeights = optimizePortfolioGradient(adjustedWeights, riskAversion * 0.9, volMax);
+                    }
+                } else if (result.sharpe > 2) {
+                    if (covInverse) {
+                        const excessReturnFactor = 0.9;
+                        const newExcessReturns = excessReturns.map(r => r * excessReturnFactor);
+                        adjustedWeights = matrixVectorMultiply(covInverse, newExcessReturns);
+                        adjustedWeights = adjustedWeights.map(w => w / riskAversion);
+                    } else {
+                        adjustedWeights = optimizePortfolioGradient(adjustedWeights, riskAversion * 1.1, volMax);
+                    }
+                }
+                
+                if (result.volatilite > volMax) {
+                    adjustedWeights = adjustedWeights.map(w => w * 0.95);
+                }
+                
+                const totalWeight = adjustedWeights.reduce((a, b) => a + b, 0);
+                if (totalWeight > 0) {
+                    adjustedWeights = adjustedWeights.map(w => w / totalWeight);
+                }
+                
+                const newResult = calculatePortfolio(adjustedWeights);
+                if (newResult.sharpe >= 1 && newResult.sharpe <= 2 && newResult.volatilite <= volMax) {
+                    break;
+                }
+                iterations++;
+            }
+            
+            poids = adjustedWeights;
+            
+            runStressTest10Years(poids);
+            
+            initSliders();
+            updateDisplay();
+            saveInvestorData();
+        }
+
+        function updateDisplay() {
+            const montant = parseFloat(document.getElementById('montant').value) || 10000;
+            const result = calculatePortfolio(poids);
+            document.getElementById('rendement').textContent = `${(result.rendement * 100).toFixed(1)}%`;
+            document.getElementById('volatilite').textContent = `${(result.volatilite * 100).toFixed(1)}%`;
+            document.getElementById('sharpe').textContent = result.sharpe.toFixed(2);
+            
+            if (stressTestResults) {
+                const gain10ans = ((stressTestResults.medianCase / montant - 1) * 100);
+                document.getElementById('gain5ans').textContent = `+${gain10ans.toFixed(0)}% (10 ans médian)`;
+            } else {
+            document.getElementById('gain5ans').textContent = `+${((Math.pow(1 + result.rendement, 5) - 1) * 100).toFixed(0)}%`;
+            }
+            const tbody = document.querySelector('#allocationTable tbody');
+            tbody.innerHTML = actifs.map((a, i) => {
+                const hasTradeRepublic = a.tradeRepublic && a.tradeRepublic !== '-';
+                const hasBoursorama = a.boursorama && a.boursorama !== '-';
+                let brokerStatus = '';
+                if (hasTradeRepublic && hasBoursorama) {
+                    brokerStatus = '<div class="broker-info" style="background:rgba(76,175,80,0.2);border-left:3px solid #4caf50;"><strong>✓ Disponible sur les deux:</strong> Trade Republic & Boursorama<br><small>Trade Republic: ' + a.tradeRepublic + ' | Boursorama: ' + a.boursorama + '</small></div>';
+                } else if (hasTradeRepublic) {
+                    brokerStatus = '<div class="broker-info" style="background:rgba(33,150,243,0.2);border-left:3px solid #2196f3;"><strong>Trade Republic:</strong> ' + a.tradeRepublic + '<br><small style="color:#888;">Non disponible sur Boursorama</small></div>';
+                } else if (hasBoursorama) {
+                    brokerStatus = '<div class="broker-info" style="background:rgba(33,150,243,0.2);border-left:3px solid #2196f3;"><strong>Boursorama:</strong> ' + a.boursorama + '<br><small style="color:#888;">Non disponible sur Trade Republic</small></div>';
+                } else {
+                    brokerStatus = '<div class="broker-info" style="background:rgba(244,67,54,0.2);border-left:3px solid #f44336;"><small>Non disponible sur les courtiers sélectionnés</small></div>';
+                }
+                return `
+                    <tr>
+                        <td>${a.nom}</td>
+                        <td>${a.isin !== '-' ? a.isin : '-'}<br><small style="color:#888;">Ticker: ${a.ticker}</small></td>
+                        <td>${brokerStatus}</td>
+                    <td>${(poids[i] * 100).toFixed(1)}%</td>
+                        <td>${(montant * poids[i]).toLocaleString('fr-FR', {maximumFractionDigits: 0})} €</td>
+                    <td>${(a.rendement * 100).toFixed(1)}%</td>
+                </tr>
+                `;
+            }).join('');
+            const scenarios = [
+                { nom: 'Marché haussier', chocs: [0.15, 0.20, 0.02, 0.12, 0.10, 0], class: 'bullish' },
+                { nom: 'Correction -20%', chocs: [-0.20, -0.25, 0.05, -0.18, -0.22, 0], class: 'bearish' },
+                { nom: 'Krach -40%', chocs: [-0.40, -0.50, 0.10, -0.38, -0.42, 0], class: 'crash' },
+                { nom: 'Hausse des taux', chocs: [-0.05, -0.05, -0.10, -0.04, -0.06, 0.02], class: 'rates' }
+            ];
+            document.getElementById('scenariosGrid').innerHTML = scenarios.map(s => {
+                const impact = poids.reduce((sum, w, i) => sum + w * s.chocs[i], 0);
+                const newValue = montant * (1 + result.rendement + impact);
+                return `
+                    <div class="scenario-card ${s.class}">
+                        <h4>${s.nom}</h4>
+                        <div class="value" style="color:${impact >= 0 ? '#4caf50' : '#f44336'}">
+                            ${impact >= 0 ? '+' : ''}${(impact * 100).toFixed(1)}%
+                        </div>
+                        <p style="color:#888;font-size:0.85em;margin-top:5px;">
+                            ${newValue.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €
+                        </p>
+                    </div>
+                `;
+            }).join('');
+            
+            if (stressTestResults) {
+                const stressInfo = document.getElementById('stressTestInfo');
+                if (stressInfo) {
+                    const worstCase = stressTestResults.worstCase;
+                    const medianCase = stressTestResults.medianCase;
+                    const worstLoss = ((worstCase / montant - 1) * 100);
+                    const medianGain = ((medianCase / montant - 1) * 100);
+                    stressInfo.innerHTML = `
+                        <p style="color:#4ecdc4;font-weight:bold;margin-bottom:10px;">Résultats du Stress Test sur 10 ans (1000 simulations):</p>
+                        <p style="color:#eee;margin:5px 0;">Scénario médian (50%): <strong style="color:#4caf50;">${medianGain.toFixed(1)}%</strong> → ${medianCase.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €</p>
+                        <p style="color:#eee;margin:5px 0;">Pire scénario (5%): <strong style="color:#f44336;">${worstLoss.toFixed(1)}%</strong> → ${worstCase.toLocaleString('fr-FR', {maximumFractionDigits: 0})} €</p>
+                        <p style="color:#888;font-size:0.85em;margin-top:10px;">Scénarios testés: Normal (50%), Crise 2008 (15%), COVID-19 (15%), Stagflation (10%), Krach boursier (10%)</p>
+                    `;
+                }
+            }
+            
+            updateCharts(montant, result);
+        }
+
+        function initCharts() {
+            const ctxAlloc = document.getElementById('allocationChart').getContext('2d');
+            charts.allocation = new Chart(ctxAlloc, {
+                type: 'doughnut',
+                data: {
+                    labels: actifs.map(a => a.nom),
+                    datasets: [{
+                        data: poids.map(p => p * 100),
+                        backgroundColor: actifs.map(a => a.color),
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#fff', padding: 15 } },
+                        title: { display: true, text: 'Répartition du Portefeuille', color: '#fff' }
+                    }
+                }
+            });
+            const ctxPerf = document.getElementById('performanceChart').getContext('2d');
+            charts.performance = new Chart(ctxPerf, {
+                type: 'bar',
+                data: {
+                    labels: actifs.map(a => a.nom),
+                    datasets: [{
+                        label: 'Rendement (%)',
+                        data: actifs.map(a => a.rendement * 100),
+                        backgroundColor: actifs.map(a => a.color + '80'),
+                        borderColor: actifs.map(a => a.color),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Rendement par Actif', color: '#fff' }
+                    },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888' } },
+                        x: { grid: { display: false }, ticks: { color: '#888' } }
+                    }
+                }
+            });
+            const ctxSim = document.getElementById('simulationChart').getContext('2d');
+            charts.simulation = new Chart(ctxSim, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#fff' } },
+                        title: { display: true, text: 'Projection sur 10 ans (Monte Carlo)', color: '#fff' }
+                    },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#888', callback: v => v.toLocaleString() + ' €' } },
+                        x: { grid: { display: false }, ticks: { color: '#888' } }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(montant, result) {
+            charts.allocation.data.datasets[0].data = poids.map(p => p * 100);
+            charts.allocation.update();
+            charts.performance.data.datasets[0].data = actifs.map(a => a.rendement * 100);
+            charts.performance.update();
+            
+            const years = 10;
+            const labels = Array.from({length: years + 1}, (_, i) => `Année ${i}`);
+            
+            if (stressTestResults && stressTestResults.percentiles) {
+                charts.simulation.data.labels = labels;
+                charts.simulation.data.datasets = [
+                    {
+                        label: 'Optimiste (95%)',
+                        data: stressTestResults.percentiles.map(p => p.p95),
+                        borderColor: '#4caf50',
+                        backgroundColor: 'rgba(76,175,80,0.1)',
+                        fill: '+1',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Médian (50%)',
+                        data: stressTestResults.percentiles.map(p => p.p50),
+                        borderColor: '#4ecdc4',
+                        backgroundColor: 'transparent',
+                        borderWidth: 3,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Pessimiste (5%)',
+                        data: stressTestResults.percentiles.map(p => p.p5),
+                        borderColor: '#f44336',
+                        backgroundColor: 'rgba(244,67,54,0.1)',
+                        fill: '-1',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Pire scénario',
+                        data: stressTestResults.percentiles.map(p => p.worst),
+                        borderColor: '#9c27b0',
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4
+                    }
+                ];
+            } else {
+            const simulations = 100;
+            const allPaths = [];
+            for (let s = 0; s < simulations; s++) {
+                const path = [montant];
+                let value = montant;
+                for (let y = 0; y < years; y++) {
+                    const randReturn = result.rendement + result.volatilite * (Math.random() * 2 - 1) * 1.5;
+                    value *= (1 + randReturn);
+                    path.push(value);
+                }
+                allPaths.push(path);
+            }
+            const percentiles = labels.map((_, i) => {
+                const values = allPaths.map(p => p[i]).sort((a, b) => a - b);
+                return {
+                    p10: values[Math.floor(simulations * 0.1)],
+                    p50: values[Math.floor(simulations * 0.5)],
+                    p90: values[Math.floor(simulations * 0.9)]
+                };
+            });
+            charts.simulation.data.labels = labels;
+            charts.simulation.data.datasets = [
+                {
+                    label: 'Optimiste (90%)',
+                    data: percentiles.map(p => p.p90),
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76,175,80,0.1)',
+                    fill: '+1',
+                    tension: 0.4
+                },
+                {
+                        label: 'Médian (50%)',
+                    data: percentiles.map(p => p.p50),
+                    borderColor: '#4ecdc4',
+                    backgroundColor: 'transparent',
+                    borderWidth: 3,
+                    tension: 0.4
+                },
+                {
+                    label: 'Pessimiste (10%)',
+                    data: percentiles.map(p => p.p10),
+                    borderColor: '#f44336',
+                    backgroundColor: 'rgba(244,67,54,0.1)',
+                    fill: '-1',
+                    tension: 0.4
+                }
+            ];
+            }
+            charts.simulation.update();
+        }
+
+        function updateAIInsights() {
+            const insights = generateAIInsights();
+            document.getElementById('aiSummary').textContent = insights.summary;
+            const highlightList = document.getElementById('aiHighlights');
+            highlightList.innerHTML = insights.highlights.map(h => `<li>${h}</li>`).join('');
+        }
+
+        function generateAIInsights() {
+            const enriched = marketFeeds
+                .map(feed => ({ ...feed, quote: liveQuotes[feed.symbol] }))
+                .filter(feed => feed.quote && typeof feed.quote.regularMarketChangePercent === 'number');
+            if (!enriched.length) {
+                return { summary: "IA en attente de nouvelles cotations...", highlights: [] };
+            }
+            const avg = enriched.reduce((sum, f) => sum + f.quote.regularMarketChangePercent, 0) / enriched.length;
+            const sentiment = avg > 0.4 ? 'positif' : avg < -0.4 ? 'négatif' : 'neutre';
+            const summary = `Sentiment IA ${sentiment} : variation moyenne ${(avg).toFixed(2)}% sur les indices suivis.`;
+            const highlights = enriched
+                .sort((a, b) => Math.abs(b.quote.regularMarketChangePercent) - Math.abs(a.quote.regularMarketChangePercent))
+                .slice(0, 3)
+                .map(feed => {
+                    const change = feed.quote.regularMarketChangePercent.toFixed(2);
+                    const direction = feed.quote.regularMarketChangePercent >= 0 ? 'hausse' : 'baisse';
+                    return `${feed.nom} en ${direction} de ${change}% (signal ${direction === 'hausse' ? 'pro-risque' : 'défensif'})`;
+                });
+            if (poids[0] + poids[1] >= 0.80) {
+                highlights.push('Allocation actions >80% : surveiller la volatilité pour rester conforme au PEA.');
+            }
+            return { summary, highlights };
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Fichiers CSV d'export
+*.csv
+
+# Fichiers de sauvegarde
+*.bak
+*.tmp
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers d'éditeur
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
